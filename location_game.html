@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .info-box {
+            background: #f7f7f7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .location-name {
+            font-size: 1.5em;
+            color: #764ba2;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .w3w-address {
+            font-size: 1.1em;
+            color: #E11F26;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+
+        .timer {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer.warning {
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .distance {
+            font-size: 1.5em;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        .distance-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px 0;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .victory {
+            font-size: 2.5em;
+            color: #28a745;
+            font-weight: bold;
+            animation: celebrate 0.5s ease-in-out;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .accuracy {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Location Challenge</h1>
+        
+        <div id="startScreen">
+            <div class="info-box">
+                <div class="location-name">Target: test</div>
+                <div class="w3w-address">///cotton.tolls.spite</div>
+                <p style="margin-top: 15px; color: #666;">
+                    You have <strong>20 minutes</strong> to reach this location!
+                </p>
+            </div>
+            <button id="startBtn">Start Challenge</button>
+            <p style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                You'll need to enable location services to play
+            </p>
+        </div>
+
+        <div id="gameScreen" class="hidden">
+            <div class="timer" id="timer">20:00</div>
+            
+            <div class="info-box">
+                <div class="location-name">Target: test</div>
+                <div class="w3w-address">///cotton.tolls.spite</div>
+            </div>
+
+            <div class="distance" id="distance">
+                <span class="distance-value">Calculating...</span>
+            </div>
+
+            <div class="accuracy" id="accuracy"></div>
+
+            <div class="status info" id="status">
+                Tracking your location...
+            </div>
+        </div>
+
+        <div id="victoryScreen" class="hidden">
+            <div class="victory">🎉 Well Done! 🎉</div>
+            <div class="info-box" style="margin-top: 30px;">
+                <p style="font-size: 1.2em; color: #28a745; font-weight: bold;">
+                    You made it to "test"!
+                </p>
+                <p style="margin-top: 15px; color: #666;" id="completionTime"></p>
+            </div>
+            <button id="playAgainBtn" style="margin-top: 20px;">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Target location for ///cotton.tolls.spite
+        // NOTE: You can get the exact coordinates by:
+        // 1. Going to https://what3words.com/cotton.tolls.spite
+        // 2. Or using the What3Words API
+        // For this example, I'm using placeholder coordinates - replace with actual coordinates
+        const TARGET_LOCATION = {
+            lat: 51.520847,  // Replace with actual latitude
+            lng: -0.195521,  // Replace with actual longitude
+            name: "test",
+            w3w: "///cotton.tolls.spite"
+        };
+
+        const ARRIVAL_THRESHOLD = 50; // meters - consider arrived when within 50m
+        const GAME_DURATION = 20 * 60 * 1000; // 20 minutes in milliseconds
+
+        let watchId = null;
+        let gameStartTime = null;
+        let timerInterval = null;
+        let hasArrived = false;
+
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const victoryScreen = document.getElementById('victoryScreen');
+        const startBtn = document.getElementById('startBtn');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const timerEl = document.getElementById('timer');
+        const distanceEl = document.getElementById('distance');
+        const statusEl = document.getElementById('status');
+        const accuracyEl = document.getElementById('accuracy');
+        const completionTimeEl = document.getElementById('completionTime');
+
+        // Calculate distance between two coordinates using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // Distance in meters
+        }
+
+        function formatDistance(meters) {
+            if (meters < 1000) {
+                return `${Math.round(meters)}m away`;
+            } else {
+                return `${(meters / 1000).toFixed(2)}km away`;
+            }
+        }
+
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            const elapsed = Date.now() - gameStartTime;
+            const remaining = GAME_DURATION - elapsed;
+
+            if (remaining <= 0) {
+                endGame(false);
+                return;
+            }
+
+            timerEl.textContent = formatTime(remaining);
+            
+            // Add warning class when under 5 minutes
+            if (remaining < 5 * 60 * 1000) {
+                timerEl.classList.add('warning');
+            }
+        }
+
+        function updateLocation(position) {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            const distance = calculateDistance(
+                userLat, userLon,
+                TARGET_LOCATION.lat, TARGET_LOCATION.lng
+            );
+
+            distanceEl.innerHTML = `<span class="distance-value">${formatDistance(distance)}</span>`;
+            accuracyEl.textContent = `Location accuracy: ±${Math.round(accuracy)}m`;
+
+            // Check if arrived
+            if (distance <= ARRIVAL_THRESHOLD && !hasArrived) {
+                hasArrived = true;
+                endGame(true);
+            } else if (distance <= 100) {
+                statusEl.textContent = "You're very close! 🎯";
+                statusEl.className = "status success";
+            } else if (distance <= 500) {
+                statusEl.textContent = "Getting closer! 🏃";
+                statusEl.className = "status info";
+            }
+        }
+
+        function handleLocationError(error) {
+            let message = "Error getting location: ";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += "Permission denied. Please enable location services.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += "Location unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message += "Request timeout.";
+                    break;
+                default:
+                    message += "Unknown error.";
+            }
+            statusEl.textContent = message;
+            statusEl.className = "status error";
+        }
+
+        function startGame() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser");
+                return;
+            }
+
+            // Request location permission and start tracking
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Permission granted, start the game
+                    startScreen.classList.add('hidden');
+                    gameScreen.classList.remove('hidden');
+                    
+                    gameStartTime = Date.now();
+                    hasArrived = false;
+
+                    // Start timer
+                    timerInterval = setInterval(updateTimer, 1000);
+                    updateTimer();
+
+                    // Start watching position
+                    watchId = navigator.geolocation.watchPosition(
+                        updateLocation,
+                        handleLocationError,
+                        {
+                            enableHighAccuracy: true,
+                            maximumAge: 0,
+                            timeout: 5000
+                        }
+                    );
+
+                    // Initial location update
+                    updateLocation(position);
+                },
+                (error) => {
+                    handleLocationError(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                }
+            );
+        }
+
+        function endGame(victory) {
+            // Stop tracking
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            // Stop timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            gameScreen.classList.add('hidden');
+
+            if (victory) {
+                const elapsed = Date.now() - gameStartTime;
+                const timeUsed = formatTime(elapsed);
+                completionTimeEl.textContent = `Completed in ${timeUsed}`;
+                victoryScreen.classList.remove('hidden');
+            } else {
+                statusEl.textContent = "Time's up! ⏰ Better luck next time!";
+                statusEl.className = "status error";
+                gameScreen.classList.remove('hidden');
+                
+                // Show play again button after delay
+                setTimeout(() => {
+                    gameScreen.classList.add('hidden');
+                    startScreen.classList.remove('hidden');
+                }, 3000);
+            }
+        }
+
+        function resetGame() {
+            victoryScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            timerEl.textContent = "20:00";
+            timerEl.classList.remove('warning');
+            distanceEl.innerHTML = '<span class="distance-value">Calculating...</span>';
+            statusEl.textContent = "Tracking your location...";
+            statusEl.className = "status info";
+            accuracyEl.textContent = "";
+        }
+
+        startBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', resetGame);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+    </script>
+</body>
+</html>
